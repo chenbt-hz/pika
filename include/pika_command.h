@@ -326,12 +326,14 @@ class CmdRes {
     kInvalidTransaction,
     kTxnQueued,
     kTxnAbort,
+    kNoExists,
   };
 
   CmdRes() = default;
 
   bool none() const { return ret_ == kNone && message_.empty(); }
-  bool ok() const { return ret_ == kOk || ret_ == kNone; }
+  bool noexist() const { return ret_ == kNoExists; }
+  bool ok() const { return ret_ == kOk || ret_ == kNone || ret_ == kNoExists; }
   CmdRet ret() const { return ret_; }
   void clear() {
     message_.clear();
@@ -358,7 +360,6 @@ class CmdRes {
         return "-ERR bit offset is not an integer or out of range\r\n";
       case kWrongBitOpNotNum:
         return "-ERR BITOP NOT must be called with a single source key.\r\n";
-
       case kInvalidBitPosArgument:
         return "-ERR The bit argument must be 1 or 0.\r\n";
       case kInvalidFloat:
@@ -420,6 +421,8 @@ class CmdRes {
         result.append(message_);
         result.append(kNewLine);
         break;
+      case kNoExists:
+        return message_;
       default:
         break;
     }

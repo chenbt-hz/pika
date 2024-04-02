@@ -917,6 +917,13 @@ void Cmd::DoCommand(const HintKeys& hint_keys) {
   } else {
     Do();
   }
+  if (res().ok()) {
+    if (res().noexist()) {
+      g_pika_server->incr_server_keyspace_misses();
+    } else {
+        g_pika_server->incr_server_keyspace_hits();
+    }
+  }
 }
 
 void Cmd::DoBinlog() {

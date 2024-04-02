@@ -75,6 +75,7 @@ void SPopCmd::Do() {
     }
   } else if (s_.IsNotFound()) {
     res_.AppendContent("$-1");
+    res_.SetRes(CmdRes::kNoExists);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -120,8 +121,11 @@ void SCardCmd::DoInitial() {
 void SCardCmd::Do() {
   int32_t card = 0;
   s_ = db_->storage()->SCard(key_, &card);
-  if (s_.ok() || s_.IsNotFound()) {
+  if (s_.ok()) {
     res_.AppendInteger(card);
+  } else if (s_.IsNotFound()) {
+    res_.AppendInteger(card);
+    res_.SetRes(CmdRes::kNoExists);
   } else {
     res_.SetRes(CmdRes::kErrOther, "scard error");
   }
@@ -162,12 +166,15 @@ void SMembersCmd::DoInitial() {
 void SMembersCmd::Do() {
   std::vector<std::string> members;
   s_ = db_->storage()->SMembers(key_, &members);
-  if (s_.ok() || s_.IsNotFound()) {
+  if (s_.ok()) {
     res_.AppendArrayLenUint64(members.size());
     for (const auto& member : members) {
       res_.AppendStringLenUint64(member.size());
       res_.AppendContent(member);
     }
+  } else if (s_.IsNotFound()) {
+    res_.SetRes(CmdRes::kNoExists);
+    res_.AppendArrayLenUint64(members.size());
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -244,7 +251,7 @@ void SScanCmd::Do() {
   std::vector<std::string> members;
   rocksdb::Status s = db_->storage()->SScan(key_, cursor_, pattern_, count_, &members, &next_cursor);
 
-  if (s.ok() || s.IsNotFound()) {
+  if (s.ok()) {
     res_.AppendContent("*2");
     char buf[32];
     int64_t len = pstd::ll2string(buf, sizeof(buf), next_cursor);
@@ -255,6 +262,15 @@ void SScanCmd::Do() {
     for (const auto& member : members) {
       res_.AppendString(member);
     }
+  } else if (s.IsNotFound()) {
+    res_.AppendContent("*2");
+    char buf[32];
+    int64_t len = pstd::ll2string(buf, sizeof(buf), next_cursor);
+    res_.AppendStringLen(len);
+    res_.AppendContent(buf);
+
+    res_.AppendArrayLenUint64(members.size());
+    res_.SetRes(CmdRes::kNoExists);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -273,7 +289,10 @@ void SRemCmd::DoInitial() {
 
 void SRemCmd::Do() {
   s_ = db_->storage()->SRem(key_, members_, &deleted_);
-  if (s_.ok() || s_.IsNotFound()) {
+  if (s_.ok()) {
+    res_.AppendInteger(deleted_);
+  } else if (s_.IsNotFound()) {
+    res_.SetRes(CmdRes::kNoExists);
     res_.AppendInteger(deleted_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -303,12 +322,16 @@ void SUnionCmd::DoInitial() {
 void SUnionCmd::Do() {
   std::vector<std::string> members;
   s_ = db_->storage()->SUnion(keys_, &members);
-  if (s_.ok() || s_.IsNotFound()) {
+  if (s_.ok()) {
     res_.AppendArrayLenUint64(members.size());
     for (const auto& member : members) {
       res_.AppendStringLenUint64(member.size());
       res_.AppendContent(member);
     }
+    // 这部分逻辑实际不会生效，考虑删除
+  } else if (s_.IsNotFound()) {
+    res_.SetRes(CmdRes::kNoExists);
+    res_.AppendArrayLenUint64(members.size());
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -399,12 +422,15 @@ void SInterCmd::DoInitial() {
 void SInterCmd::Do() {
   std::vector<std::string> members;
   s_ = db_->storage()->SInter(keys_, &members);
-  if (s_.ok() || s_.IsNotFound()) {
+  if (s_.ok()) {
     res_.AppendArrayLenUint64(members.size());
     for (const auto& member : members) {
       res_.AppendStringLenUint64(member.size());
       res_.AppendContent(member);
     }
+  } else if (s_.IsNotFound()) {
+    res_.SetRes(CmdRes::kNoExists);
+    res_.AppendArrayLenUint64(members.size());
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -460,6 +486,9 @@ void SIsmemberCmd::Do() {
   } else {
     res_.AppendContent(":0");
   }
+  if (s_.IsNotFound()) {
+    res_.SetRes(CmdRes::kNoExists);
+  }
 }
 
 void SIsmemberCmd::ReadCache() {
@@ -498,12 +527,15 @@ void SDiffCmd::DoInitial() {
 void SDiffCmd::Do() {
   std::vector<std::string> members;
   s_ = db_->storage()->SDiff(keys_, &members);
-  if (s_.ok() || s_.IsNotFound()) {
+  if (s_.ok()) {
     res_.AppendArrayLenUint64(members.size());
     for (const auto& member : members) {
       res_.AppendStringLenUint64(member.size());
       res_.AppendContent(member);
     }
+  } else if (s_.IsNotFound()) {
+    res_.SetRes(CmdRes::kNoExists);
+    res_.AppendArrayLenUint64(members.size());
   } else {
     res_.SetRes(CmdRes::kErrOther,s_.ToString());
   }
@@ -555,9 +587,13 @@ void SMoveCmd::DoInitial() {
 void SMoveCmd::Do() {
   int32_t res = 0;
   s_ = db_->storage()->SMove(src_key_, dest_key_, member_, &res);
-  if (s_.ok() || s_.IsNotFound()) {
+  if (s_.ok()) {
     res_.AppendInteger(res);
     move_success_ = res;
+  } else if (s_.IsNotFound()) {
+    res_.AppendInteger(res);
+    move_success_ = res;
+    res_.SetRes(CmdRes::kNoExists);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -627,7 +663,7 @@ void SRandmemberCmd::DoInitial() {
 void SRandmemberCmd::Do() {
   std::vector<std::string> members;
   s_ = db_->storage()->SRandmember(key_, static_cast<int32_t>(count_), &members);
-  if (s_.ok() || s_.IsNotFound()) {
+  if (s_.ok()) {
     if (!reply_arr && (static_cast<unsigned int>(!members.empty()) != 0U)) {
       res_.AppendStringLenUint64(members[0].size());
       res_.AppendContent(members[0]);
@@ -638,6 +674,9 @@ void SRandmemberCmd::Do() {
         res_.AppendContent(member);
       }
     }
+  } else if (s_.IsNotFound()) {
+    res_.SetRes(CmdRes::kNoExists);
+    res_.AppendArrayLenUint64(members.size());
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
