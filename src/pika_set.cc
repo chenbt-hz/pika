@@ -328,10 +328,6 @@ void SUnionCmd::Do() {
       res_.AppendStringLenUint64(member.size());
       res_.AppendContent(member);
     }
-    // 这部分逻辑实际不会生效，考虑删除
-  } else if (s_.IsNotFound()) {
-    res_.SetRes(CmdRes::kNoExists);
-    res_.AppendArrayLenUint64(members.size());
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -422,15 +418,12 @@ void SInterCmd::DoInitial() {
 void SInterCmd::Do() {
   std::vector<std::string> members;
   s_ = db_->storage()->SInter(keys_, &members);
-  if (s_.ok()) {
+  if (s_.ok() || s_.IsNotFound()) {
     res_.AppendArrayLenUint64(members.size());
     for (const auto& member : members) {
       res_.AppendStringLenUint64(member.size());
       res_.AppendContent(member);
     }
-  } else if (s_.IsNotFound()) {
-    res_.SetRes(CmdRes::kNoExists);
-    res_.AppendArrayLenUint64(members.size());
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -527,15 +520,12 @@ void SDiffCmd::DoInitial() {
 void SDiffCmd::Do() {
   std::vector<std::string> members;
   s_ = db_->storage()->SDiff(keys_, &members);
-  if (s_.ok()) {
+  if (s_.ok() || s_.IsNotFound()) {
     res_.AppendArrayLenUint64(members.size());
     for (const auto& member : members) {
       res_.AppendStringLenUint64(member.size());
       res_.AppendContent(member);
     }
-  } else if (s_.IsNotFound()) {
-    res_.SetRes(CmdRes::kNoExists);
-    res_.AppendArrayLenUint64(members.size());
   } else {
     res_.SetRes(CmdRes::kErrOther,s_.ToString());
   }
