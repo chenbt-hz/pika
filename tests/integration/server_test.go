@@ -395,9 +395,9 @@ var _ = Describe("Server", func() {
             r := client.Do(ctx, "config", "set", "cache-model", "0")
             Expect(r.Val()).To(Equal("OK"))
 
-            sRem := client.SRem(ctx, "setkey", "one")
+            sRem := client.SRem(ctx, "keyspace_hits", "one")
             Expect(sRem.Err()).NotTo(HaveOccurred())
-			sAdd := client.SAdd(ctx, "setkey", "one")
+			sAdd := client.SAdd(ctx, "keyspace_hits", "one")
             Expect(sAdd.Err()).NotTo(HaveOccurred())
 
 			info := client.Info(ctx, "stats")
@@ -412,8 +412,8 @@ var _ = Describe("Server", func() {
 			oldInfoKeyspaceMisses, err := strconv.ParseInt(oldInfoKeyspaceMissesStr, 10, 64)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(client.SMembers(ctx, "setkey").Err()).NotTo(HaveOccurred())
-			Expect(client.SMembers(ctx, "setkey_noexists").Err()).NotTo(HaveOccurred())
+			Expect(client.SMembers(ctx, "keyspace_hits").Err()).NotTo(HaveOccurred())
+			Expect(client.SMembers(ctx, "keyspace_misses").Err()).NotTo(HaveOccurred())
 
 			newInfo := client.Info(ctx, "stats")
 			Expect(newInfo.Err()).NotTo(HaveOccurred())
@@ -430,19 +430,19 @@ var _ = Describe("Server", func() {
 			Expect(newInfoKeyspaceHits - oldInfoKeyspaceHits).To(Equal(int64(1)))
 			Expect(newInfoKeyspaceMisses - oldInfoKeyspaceMisses).To(Equal(int64(1)))
 
-            Expect(client.SRem(ctx, "setkey", "one").Err()).NotTo(HaveOccurred())
+            Expect(client.SRem(ctx, "keyspace_hits", "one").Err()).NotTo(HaveOccurred())
 		})
 
 		It("should Info keyspace hits with cache", func() {
             r := client.Do(ctx, "config", "set", "cache-model", "1")
             Expect(r.Val()).To(Equal("OK"))
-			sRem := client.SRem(ctx, "setkey", "one")
+			sRem := client.SRem(ctx, "keyspace_hits", "one")
 			Expect(sRem.Err()).NotTo(HaveOccurred())
-            sAdd := client.SAdd(ctx, "setkey", "one")
+            sAdd := client.SAdd(ctx, "keyspace_hits", "one")
             Expect(sAdd.Err()).NotTo(HaveOccurred())
 
 			// write data to cache
-			Expect(client.SMembers(ctx, "setkey").Err()).NotTo(HaveOccurred())
+			Expect(client.SMembers(ctx, "keyspace_hits").Err()).NotTo(HaveOccurred())
 
 			info := client.Info(ctx, "stats")
 			Expect(info.Err()).NotTo(HaveOccurred())
@@ -456,8 +456,8 @@ var _ = Describe("Server", func() {
 			oldInfoKeyspaceMisses, err := strconv.ParseInt(oldInfoKeyspaceMissesStr, 10, 64)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(client.SMembers(ctx, "setkey").Err()).NotTo(HaveOccurred())
-            Expect(client.SMembers(ctx, "setkey_noexists").Err()).NotTo(HaveOccurred())
+			Expect(client.SMembers(ctx, "keyspace_hits").Err()).NotTo(HaveOccurred())
+            Expect(client.SMembers(ctx, "keyspace_misses").Err()).NotTo(HaveOccurred())
 
 			newInfo := client.Info(ctx, "stats")
 			Expect(newInfo.Err()).NotTo(HaveOccurred())
@@ -474,7 +474,7 @@ var _ = Describe("Server", func() {
 			Expect(newInfoKeyspaceHits - oldInfoKeyspaceHits).To(Equal(int64(1)))
 			Expect(newInfoKeyspaceMisses - oldInfoKeyspaceMisses).To(Equal(int64(1)))
 
-			Expect(client.SRem(ctx, "setkey", "one").Err()).NotTo(HaveOccurred())
+			Expect(client.SRem(ctx, "keyspace_hits", "one").Err()).NotTo(HaveOccurred())
 		})
 
 		It("should Info cpu", func() {
