@@ -6,6 +6,11 @@
 go mod tidy
 
 export PATH="$PATH:$GOPATH/bin"
+echo $PATH
+echo $GOPATH
+echo $GOBIN
+
+find / -name ginkgo 
 ginkgo --dry-run -v |grep -E -v "\[[0-9]+\.[0-9]+ seconds]"
 
 go test -run=TestPikaWithCache -timeout 30m
