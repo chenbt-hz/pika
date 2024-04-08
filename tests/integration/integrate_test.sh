@@ -4,5 +4,9 @@
 # of patent rights can be found in the PATENTS file in the same directory.
 
 go mod tidy
+
+export PATH="$PATH:$GOPATH/bin"
+ginkgo --dry-run -v |grep -E -v "\[[0-9]+\.[0-9]+ seconds]"
+
 go test -run=TestPikaWithCache -timeout 30m
 go test -run=TestPikaWithoutCache -timeout 30m
