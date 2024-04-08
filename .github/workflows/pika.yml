@@ -82,6 +82,9 @@ jobs:
           cd ../../tests/integration/
           chmod +x integrate_test.sh
           sh integrate_test.sh
+        env:
+          GOPATH: "/home/runner/go"
+          GOBIN: "/home/runner/go/bin"
 
   build_on_centos:
     runs-on: ubuntu-latest
