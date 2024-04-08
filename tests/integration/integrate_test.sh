@@ -13,5 +13,8 @@ echo $GOBIN
 find / -name ginkgo 
 ginkgo --dry-run -v |grep -E -v "\[[0-9]+\.[0-9]+ seconds]"
 
+ls /home/runner/go/bin/
+/home/runner/go/bin/ginkgo --dry-run -v |grep -E -v "\[[0-9]+\.[0-9]+ seconds]"
+
 go test -run=TestPikaWithCache -timeout 30m
 go test -run=TestPikaWithoutCache -timeout 30m
