@@ -9,12 +9,15 @@ export PATH="$PATH:$GOPATH/bin"
 echo $PATH
 echo $GOPATH
 echo $GOBIN
+go env
 
-find / -name ginkgo 
+find / -name ginkgo 2>/dev/null
 ginkgo --dry-run -v |grep -E -v "\[[0-9]+\.[0-9]+ seconds]"
 
 ls /home/runner/go/bin/
-/home/runner/go/bin/ginkgo --dry-run -v |grep -E -v "\[[0-9]+\.[0-9]+ seconds]"
+GinkgoPath="$(go env |grep GOPATH |awk -F "\"" '{ print $2}')/bin"/ginkgo
+echo $GinkgoPath
+$GinkgoPath --dry-run -v |grep -E -v "\[[0-9]+\.[0-9]+ seconds]"
 
 go test -run=TestPikaWithCache -timeout 30m
 go test -run=TestPikaWithoutCache -timeout 30m
