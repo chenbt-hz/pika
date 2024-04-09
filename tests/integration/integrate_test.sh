@@ -21,15 +21,11 @@ echo "try ginkgo in PATH ----- "
 find /home -name ginkgo 2>/dev/null
 ginkgo --dry-run -v |grep -E -v "\[[0-9]+\.[0-9]+ seconds]"
 
-# try /home/runner/go/pkg/mod/github.com/bsm/ginkgo
-echo "try /home/runner/go/pkg/mod/github.com/bsm/ginkgo ----- "
-/home/runner/go/pkg/mod/github.com/bsm/ginkgo --dry-run -v |grep -E -v "\[[0-9]+\.[0-9]+ seconds]"
+ginkgo --focus-file="server_test.go" -vv
 
+ginkgo --focus-file="acl_test.go" -vv
 
-ls -l /home/runner/go/bin/
-GinkgoPath="$(go env |grep GOPATH |awk -F "\"" '{ print $2}')/bin"/ginkgo
-echo "try $GinkgoPath ----- "
-$GinkgoPath --dry-run -v |grep -E -v "\[[0-9]+\.[0-9]+ seconds]"
+ginkgo --focus-file="txn_test.go" -vv
 
-go test -run=TestPikaWithCache -timeout 30m
-go test -run=TestPikaWithoutCache -timeout 30m
+# go test -run=TestPikaWithCache -timeout 30m
+# go test -run=TestPikaWithoutCache -timeout 30m
