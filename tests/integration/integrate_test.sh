@@ -16,7 +16,7 @@ go get github.com/onsi/ginkgo/v2/ginkgo
 go install github.com/onsi/ginkgo/v2/ginkgo
 go get github.com/onsi/gomega/...
 
-echo "try ginkgo in PATH >> ""
+echo "try ginkgo in PATH ----- ""
 find /home -name ginkgo 2>/dev/null
 ginkgo --dry-run -v |grep -E -v "\[[0-9]+\.[0-9]+ seconds]"
 
@@ -27,7 +27,7 @@ echo "try /home/runner/go/pkg/mod/github.com/bsm/ginkgo >> "
 
 ls -l /home/runner/go/bin/
 GinkgoPath="$(go env |grep GOPATH |awk -F "\"" '{ print $2}')/bin"/ginkgo
-echo "try $GinkgoPath >> "
+echo "try $GinkgoPath ----- "
 $GinkgoPath --dry-run -v |grep -E -v "\[[0-9]+\.[0-9]+ seconds]"
 
 go test -run=TestPikaWithCache -timeout 30m
