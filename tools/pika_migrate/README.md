@@ -1,114 +1,76 @@
-# Pika
-
-[![Build Status](https://travis-ci.org/Qihoo360/pika.svg?branch=master)](https://travis-ci.org/Qihoo360/pika)
-
-## Introduction[中文](https://github.com/Qihoo360/pika/blob/master/README_CN.md)
-
-Pika is a persistent huge storage service , compatible  with the vast majority of redis interfaces ([details](https://github.com/Qihoo360/pika/wiki/pika-支持的redis接口及兼容情况)), including string, hash, list, zset, set and management interfaces. With the huge amount of data stored, redis may suffer for a capacity bottleneck, and pika was born for solving it. Except huge storage capacity, pika also support master-slave mode by slaveof command, including full and partial synchronization. You can also use pika together with twemproxy or codis(*pika has supported data migration in codis，thanks [left2right](https://github.com/left2right) and [fancy-rabbit](https://github.com/fancy-rabbit)*) for distributed Redis solution
 
 
-## UserList
+## 适用版本
 
-<table>
-<tr>
-<td height = "100" width = "150"><img src="http://i.imgur.com/dcHpCm4.png" alt="Qihoo"></td>
-<td height = "100" width = "150"><img src="https://i.imgur.com/BIjqe9R.jpg" alt="360game"></td>
-<td height = "100" width = "150"><img src="http://i.imgur.com/jjZczkN.png" alt="Weibo"></td>
-<td height = "100" width = "150"><img src="http://i.imgur.com/zoel46r.gif" alt="Garena"></td>
-</tr>
-<tr>
-<td height = "100" width = "150"><img src="http://i.imgur.com/kHqACbn.png" alt="Apus"></td>
-<td height = "100" width = "150"><img src="http://i.imgur.com/2c57z8U.png" alt="Ffan"></td>
-<td height = "100" width = "150"><img src="http://i.imgur.com/rUiO5VU.png" alt="Meituan"></td>
-<td height = "100" width = "150"><img src="http://i.imgur.com/px5mEuW.png" alt="XES"></td>
-</tr>
-<tr>
-<td height = "100" width = "150"><img src="http://imgur.com/yJe4FP8.png" alt="HX"></td>
-<td height = "100" width = "150"><img src="http://i.imgur.com/o8ZDXCH.png" alt="XL"></td>
-<td height = "100" width = "150"><img src="http://imgur.com/w3qNQ9T.png" alt="GWD"></td>
-<td height = "100" width = "150"><img src="https://imgur.com/KMVr3Z6.png" alt="DYD"></td>
-</tr>
-<tr>
-<td height = "100" width = "150"><img src="http://i.imgur.com/vJbAfri.png" alt="YM"></td>
-<td height = "100" width = "150"><img src="http://i.imgur.com/aNxzwsY.png" alt="XM"></td>
-<td height = "100" width = "150"><img src="http://i.imgur.com/mrWxwkF.png" alt="XL"></td>
-<td height = "100" width = "150"><img src="http://imgur.com/0oaVKlk.png" alt="YM"></td>
-</tr>
-<tr>
-<td height = "100" width = "150"><img src="https://i.imgur.com/PI89mec.png" alt="MM"></td>
-<td height = "100" width = "150"><img src="https://i.imgur.com/G9MOvZe.jpg" alt="VIP"></td>
-<td height = "100" width = "150"><img src="https://imgur.com/vQW5qr3.png" alt="LK"></td>
-<td height = "100" width = "150"><img src="https://i.imgur.com/jIMG4mi.jpg" alt="KS"></td>
-</tr>
-</table>
+适用 PIKA 3.2.0及以上版本，单机模式且只使用了单 DB。若 PIKA 版本低于3.2.0，需将内核版本升级至 3.2.0。具体信息，请参见 升级 PIKA 内核版本至3.2.0。
+### 开发背景:
+之前Pika项目官方提供的pika\_to\_redis工具仅支持离线将Pika的DB中的数据迁移到Pika、Redis, 且无法增量同步, 该工具实际上就是一个特殊的Pika, 只不过成为从库之后, 内部会将从主库获取到的数据转发给Redis，同时并支持增量同步,  实现热迁功能.
 
-[More](https://github.com/Qihoo360/pika/blob/master/USERS.md)
+## 迁移原理
 
-## Feature
-
-* huge storage capacity
-* compatible with redis interface, you can migrate to pika easily
-* support master-slave mode (slaveof)
-* various [management](https://github.com/Qihoo360/pika/wiki/pika的一些管理命令方式说明) interfaces
-
-## For developer
-
-### Releases
-The User can download the binary release from [releases](https://github.com/Qihoo360/pika/releases) or compile the source release.
-
-### Dependencies
-
-* snappy - a library for fast data compression
-* glog - google log library
-
-Upgrade your gcc to version at least 4.8 to get C++11 support.
-
-### Supported platforms
-
-* linux - Centos 5&6
-
-* linux - Ubuntu
-
-If it comes to some missing libs, install them according to the prompts and retry it.
-
-### Compile
-
-Upgrade your gcc to version at least 4.8 to get C++11 support.
-
-Get the source code
-
-```
-git clone https://github.com/Qihoo360/pika.git
-```
+将 PIKA 中的数据在线迁移到 Redis，并支持全量和增量同步。使用 pika-migrate 工具，将工具虚拟为 PIKA 的从库，然后从主库获取到数据转发给 Redis，同时支持增量同步，实现在线热迁的功能。
+1. pika-migrate 通过 dbsync 请求获取主库全量 DB 数据，以及当前 DB 数据所对应的 binlog 点位。
+2. 获取到主库当前全量 DB 数据之后，扫描 DB，将 DB 中的数据打包转发给 Redis。
+3. 通过之前获取的 binlog 的点位向主库进行增量同步, 在增量同步的过程中，将从主库获取到的 binlog 重组成 Redis 命令，转发给 Redis。
 
 
-Then compile pika, all submodules will be updated automatically.
+## 注意事项
 
-```
+PIKA 支持不同数据结构采用同名 Key，但是 Redis 不⽀持，所以在有同 Key 数据的场景下，以第⼀个迁移到 Redis 数据结构为准，其他同名 Key 的数据结构会丢失。
+该工具只支持热迁移单机模式下，并且只采⽤单 DB 版本的 PIKA，如果是集群模式，或者是多 DB 场景，⼯具会报错并且退出。
+为了避免由于主库 binlog 被清理导致该⼯具触发多次全量同步向 Redis 写入脏数据，工具自身做了保护，在第⼆次触发全量同步时会报错退出。
+
+## 编译步骤
+```shell
+# 若third目录中子仓库为空，需要进入工具根目录更新submodule
+git submodule update --init --recursive
+# 编译
 make
 ```
 
-## Usage
+### 编译备注
 
+1.如果rocksdb编译失败，请先按照[此处](https://github.com/facebook/rocksdb/blob/004237e62790320d8e630456cbeb6f4a1f3579c2/INSTALL.md) 的步骤准备环境  
+2.若类似为：
+```shell
+error: implicitly-declared 'constexpr rocksdb::FileDescriptor::FileDescriptor(const rocksdb::FileDescriptor&)' is deprecated [-Werror=deprecated-copy]
 ```
-./output/bin/pika -c ./conf/pika.conf
+可以修改tools/pika_migrate/third/rocksdb目录下的makefile： WARNING_FLAGS = -Wno-missing-field-initializers
+-Wno-unused-parameter
+
+## 迁移步骤
+
+1. 在 PIKA 主库上执行如下命令，让 PIKA 主库保留10000个 binlog 文件。
+
+```shell
+config set expire-logs-nums 10000
 ```
 
-## Performance
+```text
+说明：
+pika-port 将全量数据写入到 Redis 这段时间可能耗时很长，而导致主库原先 binlog 点位被清理。需要在 PIKA 主库上保留10000个 binlog ⽂件，确保后续该⼯具请求增量同步的时候，对应的 binlog 文件还存在。
+binlog 文件占用磁盘空间，可以根据实际情况确定保留 binlog 的数量。
+```
 
-More details on [Performance](https://github.com/Qihoo360/pika/wiki/3.2.x-Performance).
+2. 修改迁移工具的配置文件 pika.conf 中的如下参数。
+   ![img.png](img.png) 
 
+   target-redis-host：指定 Redis 的 IP 地址。  
+   target-redis-port：指定 Redis 的端口号。  
+   target-redis-pwd：指定 Redis 默认账号的密码。  
+   sync-batch-num：指定 pika-migrate 接收到主库的 sync-batch-num 个数据⼀起打包发送给 Redis，提升转发效率。  
+   redis-sender-num：指定 redis-sender-num 个线程用于转发数据包。转发命令通过 Key 的哈希值将数据分配到不同的线程发送，无需担心多线程发送导致数据错乱的问题。  
+3. 在工具包的路径下执行如下命令，启动 pika-migrate 工具，并查看回显信息。
+```shell
+pika -c pika.conf
+```
 
-## Documents
+4. 执行如下命令，将迁移工具伪装成 Slave，向主库请求同步，并观察是否有报错信息。
+```shell
+slaveof ip port force
+```
 
-1. [Wiki](https://github.com/Qihoo360/pika/wiki)
-
-## Contact Us
-
-Mail: g-infra@360.cn
-
-QQ group: 294254078
-
-For more information about Pika, Atlas and some other technology please pay attention to our Hulk platform official account
-
-<img src="http://i.imgur.com/pL4ni57.png" height = "50%" width = "50%" alt="2">
+5. 确认主从关系建立成功之后，pika-migrate 同时向目标 Redis 转发数据。执行如下命令，查看主从同步延迟。可在主库写入⼀个特殊的 Key，然后在 Redis 侧查看是否可立即获取到该 Key，判断数据同步完毕。
+```shell
+info Replication
+```
